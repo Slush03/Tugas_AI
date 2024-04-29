@@ -1,0 +1,116 @@
+import random
+
+# Matriks jarak antar titik
+jarak = [
+    # A    B    C    D    E    F
+    [0,   10,  15,  20,  25,  30],  # A
+    [10,  0,   35,  25,  30,  35],  # B
+    [15,  35,  0,   30,  10,  25],  # C
+    [20,  25,  30,  0,   20,  25],  # D
+    [25,  30,  10,  20,  0,   15],  # E
+    [30,  35,  25,  25,  15,  0]    # F
+]
+
+# Jumlah kromosom dalam populasi
+jumlah_kromosom = 10
+
+# Jumlah generasi
+jumlah_generasi = 100
+
+# Kota awal dan kota tujuan
+kota_awal = 0  # Kota A
+kota_tujuan = 5  # Kota F
+
+# Fungsi fitness: panjang jalur
+def fitness(kromosom):
+    total_jarak = 0
+    for i in range(len(kromosom) - 1):
+        total_jarak += jarak[kromosom[i]][kromosom[i+1]]
+    total_jarak += jarak[kromosom[-1]][kota_tujuan]  # Jarak ke kota tujuan
+    return total_jarak
+ 
+# Inisialisasi populasi
+populasi = []
+for _ in range(jumlah_kromosom):
+    populasi.append(random.sample(range(len(jarak) - 1), len(jarak) - 1))  # Menghilangkan kota tujuan
+
+# Algoritma genetika
+for generasi in range(jumlah_generasi):
+    # Evaluasi fitness
+    fitness_populasi = [(kromosom, fitness(kromosom)) for kromosom in populasi]
+    fitness_populasi = sorted(fitness_populasi, key=lambda x: x[1])
+
+    # Seleksi orang tua (turnamen)
+    orang_tua = []
+    for _ in range(jumlah_kromosom):
+        sampel = random.sample(fitness_populasi, 3)
+        pemenang_turnamen = min(sampel, key=lambda x: x[1])[0]
+        orang_tua.append(pemenang_turnamen)
+
+    # Crossover (titik potong acak)
+    anak = []
+    for i in range(0, jumlah_kromosom, 2):
+        titik_potong = random.randint(0, len(jarak) - 2)  # Menghindari kota tujuan
+        anak1 = orang_tua[i][:titik_potong] + [gen for gen in orang_tua[i + 1] if gen not in orang_tua[i][:titik_potong]]
+        anak2 = orang_tua[i + 1][:titik_potong] + [gen for gen in orang_tua[i] if gen not in orang_tua[i + 1][:titik_potong]]
+        anak.append(anak1)
+        anak.append(anak2)
+
+    # Mutasi (swap dua titik acak)
+    for i in range(jumlah_kromosom):
+        if random.random() < 0.1:  # Probabilitas mutasi
+            titik1, titik2 = random.sample(range(len(jarak) - 1), 2)  # Menghindari kota tujuan
+            anak[i][titik1], anak[i][titik2] = anak[i][titik2], anak[i][titik1]
+
+    populasi = anak
+
+# Pilih kromosom terbaik setelah iterasi selesai
+solusi_terbaik = min([(kromosom + [kota_tujuan], fitness(kromosom)) for kromosom in populasi], key=lambda x: x[1])
+
+# Fungsi pencarian rute manual
+def cari_rute_manual(kota_asal, kota_tujuan, jarak):
+    # Konversi kota ke indeks dalam matriks jarak
+    kota_asal_index = ord(kota_asal.upper()) - ord('A')
+    kota_tujuan_index = ord(kota_tujuan.upper()) - ord('A')
+
+    # Lakukan pencarian rute
+    rute_manual = [kota_asal_index]
+    jarak_total = 0
+    proses_perhitungan = []
+
+    while kota_asal_index != kota_tujuan_index:
+        jarak_terpendek = float('inf')
+        kota_terdekat = -1
+
+        for k in range(len(jarak[kota_asal_index])):
+            if k != kota_asal_index and k not in rute_manual:
+                if jarak[kota_asal_index][k] < jarak_terpendek:
+                    jarak_terpendek = jarak[kota_asal_index][k]
+                    kota_terdekat = k
+
+        if kota_terdekat == -1:
+            print("Tidak ada rute yang tersedia ke kota tujuan.")
+            return
+
+        rute_manual.append(kota_terdekat)
+        jarak_total += jarak_terpendek
+        proses_perhitungan.append((chr(65 + kota_asal_index), chr(65 + kota_terdekat), jarak_terpendek))
+        kota_asal_index = kota_terdekat
+
+    return rute_manual, jarak_total, proses_perhitungan
+
+# Contoh penggunaan pencarian rute manual
+kota_asal_input = input("Masukkan kota asal: ")
+kota_tujuan_input = input("Masukkan kota tujuan: ")
+
+if kota_asal_input.upper() < 'A' or kota_asal_input.upper() > 'F' or kota_tujuan_input.upper() < 'A' or kota_tujuan_input.upper() > 'F':
+    print("Input tidak valid. Harap masukkan kota dari A hingga F.")
+else:
+    rute, jarak_total, proses_perhitungan = cari_rute_manual(kota_asal_input, kota_tujuan_input, jarak)
+    if rute:
+        print(f"Rute terpendek dari {kota_asal_input.upper()} ke {kota_tujuan_input.upper()}: {rute}")
+        print(f"Jarak total: {jarak_total}")
+        print("Proses Perhitungan:")
+        for langkah in proses_perhitungan:
+            print(f"Dari kota {langkah[0]} ke kota {langkah[1]}, jarak = {langkah[2]}")
+
